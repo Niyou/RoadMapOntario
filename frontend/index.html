@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ontario Career Path Engine</title>
+  <meta name="description" content="Discover your legal and professional career path in Ontario, Canada. Find out if your profession is regulated, what licences you need, and how to get there." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css?v=5" />
+</head>
+<body>
+
+  <!-- ── Background Orbs ───────────────────────────────────────────────── -->
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <!-- ── Header ────────────────────────────────────────────────────────── -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">🍁</span>
+        <span class="logo-text">Ontario <strong>Career Path</strong></span>
+      </div>
+      <div class="header-badge">Powered by GPT-4o</div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ── Hero / Search Section ─────────────────────────────────────────── -->
+    <section class="hero" id="hero-section">
+      <div class="hero-content">
+        <div class="hero-tag">🇨🇦 Ontario Career Compliance Engine</div>
+        <h1 class="hero-title">
+          What career are you<br />
+          <span class="gradient-text">pursuing in Ontario?</span>
+        </h1>
+        <p class="hero-sub">
+          Instantly discover the legal requirements, governing bodies, licences,
+          and step-by-step path for any profession in Ontario, Canada.
+        </p>
+
+        <!-- Search Box -->
+        <div class="search-container" id="search-container">
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input
+              type="text"
+              id="profession-input"
+              placeholder="e.g. Civil Engineer, Nurse, Data Analyst…"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <button id="search-btn" onclick="handleSearch()">
+              <span id="btn-text">Explore Path</span>
+              <span id="btn-loader" class="btn-loader hidden"></span>
+            </button>
+          </div>
+          <div id="input-error" class="input-error hidden"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Phase 1: Disambiguation Cards ─────────────────────────────────── -->
+    <section id="disambig-section" class="hidden section-fade">
+      <div class="section-header">
+        <h2>Select your profession</h2>
+        <p>We found multiple matches — choose the one that best fits your goal.</p>
+      </div>
+      <div id="disambig-cards" class="disambig-grid"></div>
+      <button class="btn-ghost" onclick="resetToSearch()">← Search again</button>
+    </section>
+
+    <!-- ── Loading Pipeline ───────────────────────────────────────────────── -->
+    <section id="loading-section" class="hidden section-fade">
+      <div class="loading-container">
+        <div class="loading-orb"></div>
+        <h2 id="loading-title">Analyzing your career path…</h2>
+        <p id="loading-sub">Running multi-agent compliance check for Ontario</p>
+        <div class="agent-progress">
+          <div class="agent-step" id="step-regulatory">
+            <div class="agent-dot"></div>
+            <span>Regulatory Status</span>
+          </div>
+          <div class="agent-step" id="step-education">
+            <div class="agent-dot"></div>
+            <span>Education Requirements</span>
+          </div>
+          <div class="agent-step" id="step-certification">
+            <div class="agent-dot"></div>
+            <span>Certifications & Exams</span>
+          </div>
+          <div class="agent-step" id="step-experience">
+            <div class="agent-dot"></div>
+            <span>Experience Requirements</span>
+          </div>
+          <div class="agent-step" id="step-summary">
+            <div class="agent-dot"></div>
+            <span>Compiling Roadmap</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Roadmap Output ─────────────────────────────────────────────────── -->
+    <section id="roadmap-section" class="hidden section-fade">
+
+      <!-- Profession Header -->
+      <div id="roadmap-header" class="roadmap-header"></div>
+
+      <!-- Path Steps -->
+      <div id="roadmap-steps" class="roadmap-steps"></div>
+
+      <!-- Details Grid -->
+      <div id="details-grid" class="details-grid"></div>
+
+      <!-- Key Links -->
+      <div id="key-links-section" class="key-links-section hidden">
+        <h3>📎 Key Ontario Resources</h3>
+        <div id="key-links-list" class="key-links-list"></div>
+      </div>
+
+      <!-- Important Notes -->
+      <div id="notes-section" class="notes-section hidden">
+        <h3>⚠️ Important Notes</h3>
+        <ul id="notes-list" class="notes-list"></ul>
+      </div>
+
+      <!-- Reset Button -->
+      <div class="reset-row">
+        <button class="btn-ghost" onclick="resetToSearch()">← Search another profession</button>
+      </div>
+
+    </section>
+
+    <!-- ── Error Section ──────────────────────────────────────────────────── -->
+    <section id="error-section" class="hidden section-fade">
+      <div class="error-card">
+        <div class="error-icon">⚠️</div>
+        <h2>Something went wrong</h2>
+        <p id="error-message"></p>
+        <button class="btn-primary" onclick="resetToSearch()">Try Again</button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ── Footer ─────────────────────────────────────────────────────────── -->
+  <footer class="site-footer">
+    <p>Ontario Career Path Engine &mdash; For informational purposes only. Always verify with official governing bodies.</p>
+  </footer>
+
+  <script src="/static/app.js?v=7"></script>
+</body>
+</html>
