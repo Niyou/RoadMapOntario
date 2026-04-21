@@ -3,6 +3,7 @@ import os
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
 from backend.models.schemas import EducationInfo
+from backend.utils.rag import retrieve_context
 
 load_dotenv()
 
@@ -15,6 +16,8 @@ def get_client() -> AsyncOpenAI:
     return _client
 
 SYSTEM_PROMPT = """You are an Ontario education expert specializing in post-secondary pathways.
+You MUST base your answers ONLY on the provided Official Context. If the context does not contain the answer, explicitly state that the information is unavailable. Do not rely on outside knowledge.
+
 Given a profession and whether it is regulated in Ontario, provide:
 1. The required degree or educational credential
 2. Ontario-accredited programs (for regulated) OR industry-preferred credentials (for unregulated)
@@ -41,6 +44,8 @@ Focus strictly on Ontario, Canada institutions and programs."""
 
 async def run(profession: str, is_regulated: bool) -> EducationInfo:
     """Returns Ontario-specific education requirements for the given profession."""
+    context_text = await retrieve_context(profession)
+
     context = "This is a REGULATED profession in Ontario." if is_regulated \
         else "This is an UNREGULATED profession in Ontario."
 
@@ -49,9 +54,9 @@ async def run(profession: str, is_regulated: bool) -> EducationInfo:
         response_format={"type": "json_object"},
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": f"Profession: {profession}\nContext: {context}"},
+            {"role": "user", "content": f"Profession: {profession}\nContext: {context}\n\nOfficial Context:\n{context_text}"},
         ],
-        temperature=0.1,
+        temperature=0.0,
     )
 
     raw = response.choices[0].message.content
