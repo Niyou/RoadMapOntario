@@ -16,7 +16,7 @@ def get_client() -> AsyncOpenAI:
     return _client
 
 SYSTEM_PROMPT = """You are an Ontario professional certification expert.
-You MUST base your answers ONLY on the provided Official Context. If the context does not contain the answer, explicitly state that the information is unavailable. Do not rely on outside knowledge.
+You MUST base your answers ONLY on the provided Official Context. If the context does not contain the answer, use null for that field. Do not rely on outside knowledge.
 
 Given a profession and whether it is regulated in Ontario, list:
 1. Mandatory certifications / licenses required by law to practice in Ontario

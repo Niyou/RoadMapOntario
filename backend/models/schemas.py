@@ -51,7 +51,7 @@ class CertificationInfo(BaseModel):
 
 class ExperienceInfo(BaseModel):
     supervised_hours_required: Optional[str] = None
-    internship_required: bool
+    internship_required: Optional[bool] = None
     ontario_experience_note: Optional[str] = None
     typical_experience_years: Optional[str] = None
     mentorship_programs: Optional[List[str]] = None
