@@ -3,7 +3,7 @@ import json
 import os
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
-from backend.models.schemas import DisambiguationResult, ProfessionMatch
+from backend.models.schemas import DisambiguationResult, TaxonomyMatch
 from backend.utils.jobbank import fetch_ontario_median_wage
 
 load_dotenv()
@@ -16,37 +16,48 @@ def get_client() -> AsyncOpenAI:
         _client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     return _client
 
-SYSTEM_PROMPT = """You are an Ontario, Canada career expert.
-Given a user's raw input, return 3 to 5 Ontario professions using this strategy:
+SYSTEM_PROMPT = """You are an Ontario Career Ecosystem Mapper.
+Evaluate the user's query, identify the broader industry, and return exactly 6 to 8 distinct professions within that field, ranging from unregulated entry-level roles to highly regulated senior roles.
 
-1. EXACT MATCH FIRST: Include the closest match to what the user typed.
-2. RELATED PROFESSIONS: Also include adjacent roles in the same field at different 
-   levels or specializations. Examples:
-   - "pharmacist" → also include "Pharmacy Technician", "Pharmacy Assistant"
-   - "nurse" → also include "Registered Practical Nurse", "Nurse Practitioner"
-   - "engineer" → also include "Engineering Technologist", "Engineering Technician"
-   - "doctor" → also include "Physician Assistant", "Nurse Practitioner"
-   - "lawyer" → also include "Paralegal", "Law Clerk"
-   - "teacher" → also include "Early Childhood Educator", "Educational Assistant"
-   This helps users discover stepping-stone or alternative paths they may not know about.
+You must always return 6 to 8 related professions for the user to explore.
+You must classify EVERY profession into its exact bucket. The bucket must be one of the following strictly defined options:
+1. "RHPA" (Health Colleges)
+2. "FARPACTA" (Trades/Engineers/Lawyers/Teachers)
+3. "Branch 1: DAAs" (Real Estate, Cars, Travel)
+4. "Branch 2: Financial" (FSRA, OSC)
+5. "Branch 3: Direct Ministry" (Security, Paramedics)
+6. "Branch 4: Federal" (Aviation, Immigration)
+7. "Branch 5: Municipal" (Taxis, Holistic Spas)
+8. "Branch 6: Crown Agencies" (Gaming, Cannabis)
+9. "Branch 7: Statutory" (Notaries)
+10. "Branch 8: Niche Ministries" (Pesticides)
+11. "Sworn Crown Service" (Police, Military)
+12. "Unregulated Free Market" (If it is not in the above 11, the bucket is strictly "Unregulated Free Market")
+
+Example: If the user searches "Health", do not just return "Doctor". Return a spectrum like "Registered Nurse" (RHPA), "Paramedic" (Branch 3: Direct Ministry), "Personal Support Worker" (Unregulated Free Market), "Medical Clinic Manager" (Unregulated Free Market), etc. Totaling 6 to 8 roles.
 
 For each match, specify:
 - profession: the exact, canonical profession name used in Ontario
-- category: "Regulated" or "Unregulated" (based on Ontario law)
-- note: one sentence explaining the role and what governing body applies (if any)
+- is_regulated: boolean (true if regulated, false if Unregulated Free Market)
+- regulatory_bucket: the exact bucket string from the list above
+- note: one sentence explaining the role and what governing body applies (if any), or lack thereof
 
 Return ONLY valid JSON with this structure:
 {
   "matches": [
-    { "profession": "...", "category": "Regulated|Unregulated", "note": "..." }
+    {
+      "profession": "...",
+      "is_regulated": true/false,
+      "regulatory_bucket": "...",
+      "note": "..."
+    }
   ],
   "error": null
 }
 
 If the query is completely unrecognizable as a profession, return:
 { "matches": [], "error": "Could not identify a matching profession. Please be more specific." }
-
-Focus strictly on Ontario, Canada. Be accurate about regulation status."""
+"""
 
 
 async def run(query: str) -> DisambiguationResult:
@@ -80,7 +91,7 @@ async def run(query: str) -> DisambiguationResult:
     matches = []
     for m, wage in zip(raw_matches, wages):
         median_wage = wage if isinstance(wage, str) else None
-        matches.append(ProfessionMatch(**m, median_wage=median_wage))
+        matches.append(TaxonomyMatch(**m, median_wage=median_wage))
 
     return DisambiguationResult(
         matches=matches,

@@ -130,7 +130,8 @@ function renderDisambigCards(matches) {
   grid.innerHTML = '';
 
   matches.forEach(match => {
-    const isRegulated = match.category === 'Regulated';
+    const isRegulated = match.is_regulated;
+    const badgeText = isRegulated ? `Regulated: ${match.regulatory_bucket}` : "Unregulated Free Market";
     const wageBadge = match.median_wage
       ? `<span class="wage-badge">💰 Ontario median: <strong>${escapeHtml(match.median_wage)}</strong></span>`
       : '';
@@ -140,7 +141,7 @@ function renderDisambigCards(matches) {
     card.setAttribute('tabindex', '0');
     card.innerHTML = `
       <span class="card-badge ${isRegulated ? 'badge-regulated' : 'badge-unregulated'}">
-        ${match.category}
+        ${escapeHtml(badgeText)}
       </span>
       <div class="card-title">${escapeHtml(match.profession)}</div>
       <div class="card-note">${escapeHtml(match.note)}</div>

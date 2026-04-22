@@ -1,19 +1,33 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Literal
 from datetime import datetime
 
 
 # ── Disambiguation ────────────────────────────────────────────────────────────
 
-class ProfessionMatch(BaseModel):
+class TaxonomyMatch(BaseModel):
     profession: str
-    category: str           # "Regulated" | "Unregulated"
-    note: str               # One-line description / governing body hint
-    median_wage: Optional[str] = None   # e.g. "$53.85/hr" from Job Bank Ontario
+    is_regulated: bool
+    regulatory_bucket: Literal[
+        "RHPA",
+        "FARPACTA",
+        "Branch 1: DAAs",
+        "Branch 2: Financial",
+        "Branch 3: Direct Ministry",
+        "Branch 4: Federal",
+        "Branch 5: Municipal",
+        "Branch 6: Crown Agencies",
+        "Branch 7: Statutory",
+        "Branch 8: Niche Ministries",
+        "Sworn Crown Service",
+        "Unregulated Free Market"
+    ]
+    note: str
+    median_wage: Optional[str] = None
 
 
 class DisambiguationResult(BaseModel):
-    matches: List[ProfessionMatch]
+    matches: List[TaxonomyMatch]
     error: Optional[str] = None
 
 
