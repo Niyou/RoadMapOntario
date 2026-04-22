@@ -40,7 +40,7 @@ app.add_middleware(
 async def disambiguate(req: DisambiguateRequest):
     """
     Phase 1: Validate raw user input and return 3–5 Ontario profession options.
-    Fast and lightweight — no MongoDB write, no agents spawned yet.
+    Fast and lightweight — no agents spawned yet.
     """
     if not req.query.strip():
         raise HTTPException(status_code=400, detail="Query cannot be empty.")

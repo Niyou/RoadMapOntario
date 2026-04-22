@@ -11,9 +11,9 @@ User Input → Disambiguation Agent (GPT-4o)
                 ↓ (user picks profession)
           Regulatory Agent → Education Agent → Certification Agent
                                                       ↓
-          Experience Agent → Summarizer Agent → MongoDB
+          Experience Agent → Summarizer Agent → Frontend
                                                       ↓
-                                              Visual Roadmap (Frontend)
+                                              Visual Roadmap
 ```
 
 ## Setup
@@ -22,7 +22,7 @@ User Input → Disambiguation Agent (GPT-4o)
 
 ```bash
 cp .env.example .env
-# Edit .env and add your OPENAI_API_KEY and MONGO_URI
+# Edit .env and add your OPENAI_API_KEY
 ```
 
 ### 2. Create virtual environment and install dependencies
@@ -50,8 +50,11 @@ Open [http://localhost:8000](http://localhost:8000) in your browser.
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | `/api/disambiguate` | Validates input, returns 3–5 Ontario profession options |
-| `POST` | `/api/search` | Starts the 5-agent pipeline for a confirmed profession |
-| `GET`  | `/api/roadmap/{request_id}` | Polls for and retrieves the full career roadmap |
+| `POST` | `/api/agent/regulatory` | Determines regulatory status and governing body |
+| `POST` | `/api/agent/education` | Returns education requirements and accredited programs |
+| `POST` | `/api/agent/certification` | Returns mandatory vs. voluntary certifications |
+| `POST` | `/api/agent/experience` | Returns required supervised experience |
+| `POST` | `/api/agent/summarize` | Compiles results into a final roadmap |
 | `GET`  | `/api/health` | Health check |
 
 ---
@@ -61,7 +64,6 @@ Open [http://localhost:8000](http://localhost:8000) in your browser.
 | Variable | Description |
 |----------|-------------|
 | `OPENAI_API_KEY` | Your OpenAI API key (GPT-4o) |
-| `MONGO_URI` | MongoDB Atlas connection string |
 
 ---
 
@@ -85,7 +87,6 @@ Open [http://localhost:8000](http://localhost:8000) in your browser.
 
 ## Tech Stack
 
-- **Backend**: FastAPI + async Motor (MongoDB)
+- **Backend**: FastAPI
 - **AI**: OpenAI GPT-4o with `response_format: json_object`
 - **Frontend**: Vanilla HTML/CSS/JS — glassmorphism dark-mode design
-- **Database**: MongoDB (stores each roadmap by `request_id`)

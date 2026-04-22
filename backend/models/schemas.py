@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List, Literal
+from typing import Optional, List, Literal, Any
 from datetime import datetime
 
 
@@ -35,10 +35,10 @@ class DisambiguationResult(BaseModel):
 
 class RegulatoryInfo(BaseModel):
     is_regulated: bool
-    governing_body: Optional[str] = None
-    governing_body_url: Optional[str] = None
-    protected_titles: Optional[List[str]] = None
-    license_name: Optional[str] = None
+    governing_body: Optional[Any] = None
+    governing_body_url: Optional[Any] = None
+    protected_titles: Optional[Any] = None
+    license_name: Optional[Any] = None
     summary: str
 
 
@@ -48,61 +48,49 @@ class InstitutionInfo(BaseModel):
 
 class EducationInfo(BaseModel):
     required_degree: str
-    accredited_programs: Optional[List[str]] = None
-    ontario_institutions: Optional[List[InstitutionInfo]] = None
-    alternative_paths: Optional[List[str]] = None
-    estimated_years: Optional[str] = None
+    accredited_programs: Optional[Any] = None
+    ontario_institutions: Optional[Any] = None
+    alternative_paths: Optional[Any] = None
+    estimated_years: Optional[Any] = None
     summary: str
 
 
 class CertificationInfo(BaseModel):
-    mandatory_certifications: Optional[List[str]] = None
-    voluntary_certifications: Optional[List[str]] = None
-    professional_exams: Optional[List[str]] = None
-    exam_bodies: Optional[List[str]] = None
+    mandatory_certifications: Optional[Any] = None
+    voluntary_certifications: Optional[Any] = None
+    professional_exams: Optional[Any] = None
+    exam_bodies: Optional[Any] = None
     summary: str
 
 
 class ExperienceInfo(BaseModel):
-    supervised_hours_required: Optional[str] = None
-    internship_required: Optional[bool] = None
-    ontario_experience_note: Optional[str] = None
-    typical_experience_years: Optional[str] = None
-    mentorship_programs: Optional[List[str]] = None
+    supervised_hours_required: Optional[Any] = None
+    internship_required: Optional[Any] = None
+    ontario_experience_note: Optional[Any] = None
+    typical_experience_years: Optional[Any] = None
+    mentorship_programs: Optional[Any] = None
     summary: str
 
 
 class RoadmapStep(BaseModel):
-    step_number: int
-    title: str
-    description: str
-    estimated_duration: Optional[str] = None
-    resources: Optional[List[str]] = None
+    step_number: Any
+    title: Any
+    description: Any
+    estimated_duration: Optional[Any] = None
+    resources: Optional[Any] = None
 
 
 class RoadmapSummary(BaseModel):
     profession: str
     is_regulated: bool
-    path_type: str          # "Regulated" | "Unregulated"
-    total_estimated_years: Optional[str] = None
-    steps: List[RoadmapStep]
-    key_links: Optional[List[str]] = None
-    important_notes: Optional[List[str]] = None
+    path_type: Any          # "Regulated" | "Unregulated"
+    total_estimated_years: Optional[Any] = None
+    steps: Any
+    key_links: Optional[Any] = None
+    important_notes: Optional[Any] = None
 
 
-# ── Full Document (stored in MongoDB) ────────────────────────────────────────
 
-class FullRoadmap(BaseModel):
-    request_id: str
-    profession: str
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
-    status: str = "processing"          # "processing" | "complete" | "error"
-    regulatory: Optional[RegulatoryInfo] = None
-    education: Optional[EducationInfo] = None
-    certification: Optional[CertificationInfo] = None
-    experience: Optional[ExperienceInfo] = None
-    roadmap: Optional[RoadmapSummary] = None
-    error: Optional[str] = None
 
 
 # ── API Request/Response ──────────────────────────────────────────────────────
