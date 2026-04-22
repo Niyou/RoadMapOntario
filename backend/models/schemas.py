@@ -110,9 +110,14 @@ class FullRoadmap(BaseModel):
 class DisambiguateRequest(BaseModel):
     query: str
 
-class SearchRequest(BaseModel):
+class AgentRequestBase(BaseModel):
     profession: str
 
-class SearchResponse(BaseModel):
-    request_id: str
-    message: str = "Roadmap generation started"
+class AgentRequestWithReg(AgentRequestBase):
+    is_regulated: bool
+
+class SummarizerRequest(AgentRequestBase):
+    regulatory: RegulatoryInfo
+    education: EducationInfo
+    certification: CertificationInfo
+    experience: ExperienceInfo

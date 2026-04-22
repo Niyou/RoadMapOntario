@@ -4,13 +4,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from backend.agents import disambiguation_agent
-from backend.models.schemas import (
-    DisambiguateRequest, SearchRequest, SearchResponse,
-    DisambiguationResult,
+from backend.agents import (
+    disambiguation_agent,
+    regulatory_agent,
+    education_agent,
+    certification_agent,
+    experience_agent,
+    summarizer_agent
 )
-from backend.db import mongo
-from backend import orchestrator
+from backend.models.schemas import (
+    DisambiguateRequest, DisambiguationResult,
+    AgentRequestBase, AgentRequestWithReg, SummarizerRequest,
+    RegulatoryInfo, EducationInfo, CertificationInfo, ExperienceInfo, RoadmapSummary
+)
 
 app = FastAPI(
     title="Ontario Career Compliance & Path Engine",
@@ -43,29 +49,41 @@ async def disambiguate(req: DisambiguateRequest):
     return result
 
 
-@app.post("/api/search", response_model=SearchResponse)
-async def search(req: SearchRequest):
-    """
-    Phase 2: Start the 5-agent pipeline for a confirmed profession.
-    Returns a request_id immediately; pipeline runs in background.
-    """
+@app.post("/api/agent/regulatory", response_model=RegulatoryInfo)
+async def run_regulatory(req: AgentRequestBase):
     if not req.profession.strip():
         raise HTTPException(status_code=400, detail="Profession cannot be empty.")
+    return await regulatory_agent.run(req.profession.strip())
 
-    request_id = await orchestrator.run_pipeline(req.profession.strip())
-    return SearchResponse(request_id=request_id)
+@app.post("/api/agent/education", response_model=EducationInfo)
+async def run_education(req: AgentRequestWithReg):
+    if not req.profession.strip():
+        raise HTTPException(status_code=400, detail="Profession cannot be empty.")
+    return await education_agent.run(req.profession.strip(), req.is_regulated)
 
+@app.post("/api/agent/certification", response_model=CertificationInfo)
+async def run_certification(req: AgentRequestWithReg):
+    if not req.profession.strip():
+        raise HTTPException(status_code=400, detail="Profession cannot be empty.")
+    return await certification_agent.run(req.profession.strip(), req.is_regulated)
 
-@app.get("/api/roadmap/{request_id}")
-async def get_roadmap(request_id: str):
-    """
-    Poll this endpoint to check pipeline status and retrieve the full roadmap.
-    Status values: 'processing' | 'complete' | 'error'
-    """
-    doc = await mongo.get_roadmap(request_id)
-    if not doc:
-        raise HTTPException(status_code=404, detail="Roadmap not found.")
-    return doc
+@app.post("/api/agent/experience", response_model=ExperienceInfo)
+async def run_experience(req: AgentRequestWithReg):
+    if not req.profession.strip():
+        raise HTTPException(status_code=400, detail="Profession cannot be empty.")
+    return await experience_agent.run(req.profession.strip(), req.is_regulated)
+
+@app.post("/api/agent/summarize", response_model=RoadmapSummary)
+async def run_summarize(req: SummarizerRequest):
+    if not req.profession.strip():
+        raise HTTPException(status_code=400, detail="Profession cannot be empty.")
+    return await summarizer_agent.run(
+        req.profession.strip(),
+        req.regulatory,
+        req.education,
+        req.certification,
+        req.experience
+    )
 
 
 @app.get("/api/health")

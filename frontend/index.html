@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/static/style.css?v=5" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 
@@ -74,63 +75,26 @@
       <button class="btn-ghost" onclick="resetToSearch()">← Search again</button>
     </section>
 
-    <!-- ── Loading Pipeline ───────────────────────────────────────────────── -->
-    <section id="loading-section" class="hidden section-fade">
-      <div class="loading-container">
-        <div class="loading-orb"></div>
-        <h2 id="loading-title">Analyzing your career path…</h2>
-        <p id="loading-sub">Running multi-agent compliance check for Ontario</p>
-        <div class="agent-progress">
-          <div class="agent-step" id="step-regulatory">
-            <div class="agent-dot"></div>
-            <span>Regulatory Status</span>
-          </div>
-          <div class="agent-step" id="step-education">
-            <div class="agent-dot"></div>
-            <span>Education Requirements</span>
-          </div>
-          <div class="agent-step" id="step-certification">
-            <div class="agent-dot"></div>
-            <span>Certifications & Exams</span>
-          </div>
-          <div class="agent-step" id="step-experience">
-            <div class="agent-dot"></div>
-            <span>Experience Requirements</span>
-          </div>
-          <div class="agent-step" id="step-summary">
-            <div class="agent-dot"></div>
-            <span>Compiling Roadmap</span>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ── Roadmap Output ─────────────────────────────────────────────────── -->
+    <!-- ── Agent Dashboard / Roadmap Output ───────────────────────────────── -->
     <section id="roadmap-section" class="hidden section-fade">
 
       <!-- Profession Header -->
       <div id="roadmap-header" class="roadmap-header"></div>
 
-      <!-- Path Steps -->
-      <div id="roadmap-steps" class="roadmap-steps"></div>
+      <!-- Agent Cards Dashboard -->
+      <div id="agent-cards-container" class="details-grid"></div>
 
-      <!-- Details Grid -->
-      <div id="details-grid" class="details-grid"></div>
-
-      <!-- Key Links -->
-      <div id="key-links-section" class="key-links-section hidden">
-        <h3>📎 Key Ontario Resources</h3>
-        <div id="key-links-list" class="key-links-list"></div>
-      </div>
-
-      <!-- Important Notes -->
-      <div id="notes-section" class="notes-section hidden">
-        <h3>⚠️ Important Notes</h3>
-        <ul id="notes-list" class="notes-list"></ul>
+      <!-- Final Roadmap Area -->
+      <div class="final-roadmap-area" style="margin-top: 40px;">
+        <div class="roadmap-actions" style="display: flex; gap: 10px; justify-content: center; margin-bottom: 20px;">
+          <button id="btn-compile-roadmap" class="btn-primary" disabled>Compile Final Roadmap</button>
+          <button id="btn-download-pdf" class="btn-primary hidden">Download as PDF</button>
+        </div>
+        <div id="final-roadmap-content"></div>
       </div>
 
       <!-- Reset Button -->
-      <div class="reset-row">
+      <div class="reset-row" style="margin-top: 40px;">
         <button class="btn-ghost" onclick="resetToSearch()">← Search another profession</button>
       </div>
 

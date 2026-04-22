@@ -148,286 +148,193 @@ function renderDisambigCards(matches) {
       ${wageBadge}
       <span class="card-arrow">→</span>
     `;
-    card.addEventListener('click', () => startPipeline(match.profession));
-    card.addEventListener('keydown', e => { if (e.key === 'Enter') startPipeline(match.profession); });
+    card.addEventListener('click', () => startPipeline(match.profession, match.is_regulated));
+    card.addEventListener('keydown', e => { if (e.key === 'Enter') startPipeline(match.profession, match.is_regulated); });
     grid.appendChild(card);
   });
 }
 
 // ── Phase 2: Run Pipeline ─────────────────────────────────────────────────────
 
-let _pollTimer = null;
-let _currentRequestId = null;
+// ── Phase 2: Dynamic Pipeline Orchestrator ────────────────────────────────────
 
-async function startPipeline(profession) {
-  // Show loading section
+const ACTIVE_AGENTS = [
+  { id: 'regulatory', title: 'Regulatory Status', endpoint: '/api/agent/regulatory', icon: '🏛️', completed: false, data: null },
+  { id: 'education', title: 'Education Requirements', endpoint: '/api/agent/education', icon: '🎓', completed: false, data: null },
+  { id: 'certification', title: 'Certifications & Exams', endpoint: '/api/agent/certification', icon: '📋', completed: false, data: null },
+  { id: 'experience', title: 'Experience Requirements', endpoint: '/api/agent/experience', icon: '🏢', completed: false, data: null }
+];
+
+let currentProfession = "";
+let currentIsRegulated = false;
+
+function startPipeline(profession, isRegulated) {
+  currentProfession = profession;
+  currentIsRegulated = isRegulated;
+
+  // Reset agents state
+  ACTIVE_AGENTS.forEach(a => {
+    a.completed = false;
+    a.data = null;
+  });
+
+  // Switch sections
   document.getElementById('disambig-section').classList.add('hidden');
   document.getElementById('hero-section').classList.add('hidden');
-  document.getElementById('loading-section').classList.remove('hidden');
-  document.getElementById('loading-section').classList.add('section-fade');
-  document.getElementById('loading-title').textContent = `Mapping your path to: ${profession}`;
+  document.getElementById('roadmap-section').classList.remove('hidden');
+  document.getElementById('roadmap-section').classList.add('section-fade');
 
-  // Start agent step indicators cycling
-  const steps = ['step-regulatory','step-education','step-certification','step-experience','step-summary'];
-  let currentStep = 0;
-  const stepTimer = setInterval(() => {
-    if (currentStep > 0) {
-      document.getElementById(steps[currentStep - 1]).classList.remove('active');
-      document.getElementById(steps[currentStep - 1]).classList.add('done');
-    }
-    if (currentStep < steps.length) {
-      document.getElementById(steps[currentStep]).classList.add('active');
-      currentStep++;
-    } else {
-      clearInterval(stepTimer);
-    }
-  }, 2800);
-
-  try {
-    const res = await fetch(`${API}/api/search`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ profession }),
-    });
-
-    if (!res.ok) throw new Error(`Server error: ${res.status}`);
-
-    const data = await res.json();
-    _currentRequestId = data.request_id;
-
-    pollForRoadmap(_currentRequestId, stepTimer);
-
-  } catch (err) {
-    clearInterval(stepTimer);
-    showError('Failed to start the career analysis. Please try again.');
-  }
-}
-
-async function pollForRoadmap(requestId, stepTimer) {
-  const POLL_INTERVAL = 3000;
-  const MAX_WAIT = 180000; // 3 minutes
-  const started = Date.now();
-
-  async function poll() {
-    if (Date.now() - started > MAX_WAIT) {
-      clearInterval(stepTimer);
-      showError('Analysis is taking too long. Please try again.');
-      return;
-    }
-
-    try {
-      const res = await fetch(`${API}/api/roadmap/${requestId}`);
-      if (!res.ok) {
-        _pollTimer = setTimeout(poll, POLL_INTERVAL);
-        return;
-      }
-
-      const doc = await res.json();
-
-      if (doc.status === 'complete') {
-        clearInterval(stepTimer);
-        // Mark all steps done
-        ['step-regulatory','step-education','step-certification','step-experience','step-summary']
-          .forEach(id => {
-            document.getElementById(id).classList.remove('active');
-            document.getElementById(id).classList.add('done');
-          });
-        // Short delay for UX, then render
-        setTimeout(() => renderRoadmap(doc), 700);
-
-      } else if (doc.status === 'error') {
-        clearInterval(stepTimer);
-        showError(doc.error || 'An error occurred during analysis.');
-
-      } else {
-        // Still processing
-        _pollTimer = setTimeout(poll, POLL_INTERVAL);
-      }
-    } catch {
-      _pollTimer = setTimeout(poll, POLL_INTERVAL);
-    }
-  }
-
-  poll();
-}
-
-// ── Render Roadmap ────────────────────────────────────────────────────────────
-
-function renderRoadmap(doc) {
-  const roadmap = doc.roadmap;
-  const regulatory = doc.regulatory;
-  const isRegulated = roadmap.is_regulated;
-
-  // ── Header ────────────
+  // Set Header
   const header = document.getElementById('roadmap-header');
   header.innerHTML = `
     <div class="roadmap-title-block">
-      <h2>${escapeHtml(roadmap.profession)}</h2>
-      <p class="roadmap-duration">
-        Estimated total time: <strong>${escapeHtml(roadmap.total_estimated_years || 'Varies')}</strong>
-      </p>
-      ${regulatory?.governing_body ? `<p style="font-size:13px;color:var(--text-muted);margin-top:4px;">
-        Governing Body: <a href="${escapeHtml(regulatory.governing_body_url || '#')}" 
-          target="_blank" style="color:var(--amber);text-decoration:none;">
-          ${escapeHtml(regulatory.governing_body)}
-        </a>
-      </p>` : ''}
+      <h2>${escapeHtml(profession)}</h2>
     </div>
     <div>
       <span class="roadmap-type-badge ${isRegulated ? 'regulated' : 'unregulated'}">
         ${isRegulated ? '🏛️ Regulated Profession' : '🌐 Unregulated Profession'}
       </span>
-      ${regulatory?.protected_titles?.length ? `
-        <div style="margin-top:10px;font-size:12px;color:var(--text-muted);">
-          Protected titles: <strong style="color:var(--amber)">${regulatory.protected_titles.join(', ')}</strong>
-        </div>` : ''}
     </div>
   `;
 
-  // ── Steps ─────────────
-  const stepsEl = document.getElementById('roadmap-steps');
-  stepsEl.innerHTML = '';
-  const bubbleClass = isRegulated ? 'regulated-bubble' : 'unregulated-bubble';
+  // Render Agent Cards Dashboard
+  const container = document.getElementById('agent-cards-container');
+  container.innerHTML = '';
 
+  ACTIVE_AGENTS.forEach(agent => {
+    const card = document.createElement('div');
+    card.className = 'detail-card';
+    card.id = `agent-card-${agent.id}`;
+    card.innerHTML = `
+      <div class="detail-icon">${agent.icon}</div>
+      <h4>${agent.title}</h4>
+      <div id="agent-content-${agent.id}" class="detail-body" style="margin-bottom: 15px;">Pending analysis...</div>
+      <button id="btn-${agent.id}" class="btn-primary" style="padding: 6px 12px; font-size: 13px;" onclick="triggerAgent('${agent.id}')">Analyze</button>
+    `;
+    container.appendChild(card);
+  });
+
+  // Reset Final Roadmap Section
+  const compileBtn = document.getElementById('btn-compile-roadmap');
+  compileBtn.disabled = true;
+  compileBtn.style.display = 'inline-block';
+  compileBtn.textContent = 'Compile Final Roadmap';
+  compileBtn.onclick = compileFinalRoadmap;
+  
+  document.getElementById('btn-download-pdf').classList.add('hidden');
+  document.getElementById('final-roadmap-content').innerHTML = '';
+}
+
+async function triggerAgent(agentId) {
+  const agent = ACTIVE_AGENTS.find(a => a.id === agentId);
+  const btn = document.getElementById(`btn-${agentId}`);
+  const content = document.getElementById(`agent-content-${agentId}`);
+
+  btn.disabled = true;
+  btn.textContent = 'Analyzing...';
+  
+  try {
+    const payload = { profession: currentProfession };
+    if (agentId !== 'regulatory') {
+      payload.is_regulated = currentIsRegulated;
+    }
+
+    const res = await fetch(`${API}${agent.endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) throw new Error('API Error');
+
+    const data = await res.json();
+    agent.data = data;
+    agent.completed = true;
+
+    content.innerHTML = escapeHtml(data.summary || 'Analysis complete.');
+    btn.style.display = 'none';
+
+    checkAllAgentsComplete();
+
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = 'Retry';
+    content.innerHTML = '<span style="color:var(--error);">Failed. Please try again.</span>';
+  }
+}
+
+function checkAllAgentsComplete() {
+  const allDone = ACTIVE_AGENTS.every(a => a.completed);
+  if (allDone) {
+    document.getElementById('btn-compile-roadmap').disabled = false;
+  }
+}
+
+async function compileFinalRoadmap() {
+  const compileBtn = document.getElementById('btn-compile-roadmap');
+  compileBtn.disabled = true;
+  compileBtn.textContent = 'Compiling...';
+
+  try {
+    const payload = {
+      profession: currentProfession,
+      regulatory: ACTIVE_AGENTS.find(a => a.id === 'regulatory').data,
+      education: ACTIVE_AGENTS.find(a => a.id === 'education').data,
+      certification: ACTIVE_AGENTS.find(a => a.id === 'certification').data,
+      experience: ACTIVE_AGENTS.find(a => a.id === 'experience').data
+    };
+
+    const res = await fetch(`${API}/api/agent/summarize`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) throw new Error('API Error');
+    const roadmap = await res.json();
+
+    renderFinalRoadmap(roadmap);
+    compileBtn.style.display = 'none';
+    document.getElementById('btn-download-pdf').classList.remove('hidden');
+
+  } catch (err) {
+    compileBtn.disabled = false;
+    compileBtn.textContent = 'Retry Compile';
+    alert('Failed to compile roadmap.');
+  }
+}
+
+function renderFinalRoadmap(roadmap) {
+  const container = document.getElementById('final-roadmap-content');
+  let html = `<div style="padding: 20px; background: white; border-radius: 8px; border: 1px solid var(--border-color);">
+    <h3 style="margin-bottom: 15px;">Step-by-step Roadmap</h3><div class="roadmap-steps">`;
+  
   roadmap.steps.forEach((step, idx) => {
-    const isLast = idx === roadmap.steps.length - 1;
-    const div = document.createElement('div');
-    div.className = 'roadmap-step';
-    div.innerHTML = `
-      <div class="step-connector">
-        <div class="step-bubble ${bubbleClass}">${step.step_number}</div>
-        ${!isLast ? '<div class="step-line"></div>' : ''}
-      </div>
-      <div class="step-body">
-        <div class="step-card">
-          <h3>${escapeHtml(step.title)}</h3>
-          <p>${escapeHtml(step.description)}</p>
-          <div class="step-meta">
-            <span class="step-duration">⏳ ${escapeHtml(step.estimated_duration || 'Varies')}</span>
-            ${step.resources?.length ? `
-              <div class="step-resources">
-                ${step.resources.map(r => {
-                  if (typeof r === 'object' && r.url) {
-                    return `<a class="step-resource" href="${escapeHtml(r.url)}" target="_blank" style="text-decoration:underline;">${escapeHtml(r.name || r.url)}</a>`;
-                  }
-                  const urlMatch = String(r).match(/(https?:\/\/[^\s]+)/);
-                  if (urlMatch) {
-                    const url = urlMatch[1];
-                    let text = String(r).replace(url, '').replace(/^[:-]\s*/, '').trim() || url;
-                    return `<a class="step-resource" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" style="text-decoration:underline; cursor:pointer;">${escapeHtml(text)}</a>`;
-                  } else if (String(r).startsWith('www.')) {
-                    return `<a class="step-resource" href="https://${escapeHtml(r)}" target="_blank" rel="noopener noreferrer" style="text-decoration:underline; cursor:pointer;">${escapeHtml(r)}</a>`;
-                  }
-                  return `<span class="step-resource">${escapeHtml(r)}</span>`;
-                }).join('')}
-              </div>
-            ` : ''}
+    html += `
+      <div class="roadmap-step">
+        <div class="step-connector">
+          <div class="step-bubble ${currentIsRegulated ? 'regulated-bubble' : 'unregulated-bubble'}">${step.step_number}</div>
+          ${idx < roadmap.steps.length - 1 ? '<div class="step-line"></div>' : ''}
+        </div>
+        <div class="step-body">
+          <div class="step-card">
+            <h4>${escapeHtml(step.title)}</h4>
+            <p>${escapeHtml(step.description)}</p>
+            <div class="step-meta">
+              <span class="step-duration">⏳ ${escapeHtml(step.estimated_duration || 'Varies')}</span>
+            </div>
           </div>
         </div>
       </div>
     `;
-    stepsEl.appendChild(div);
   });
+  html += `</div></div>`;
+  container.innerHTML = html;
+}
 
-  // ── Details Grid ──────
-  const grid = document.getElementById('details-grid');
-  grid.innerHTML = '';
-
-  const details = [];
-
-  if (regulatory) {
-    details.push({
-      icon: '🏛️',
-      title: 'Regulatory Status',
-      content: regulatory.summary,
-      isGoverning: true,
-    });
-  }
-  if (doc.education) {
-    let contentHtml = escapeHtml(doc.education.summary);
-    if (doc.education.ontario_institutions && doc.education.ontario_institutions.length > 0) {
-      contentHtml += '<div style="margin-top: 14px;"><strong>🏫 Notable Institutions:</strong><ul style="margin-top:6px; padding-left: 20px; color: var(--text-muted);">';
-      doc.education.ontario_institutions.forEach(inst => {
-        if (typeof inst === 'string') {
-          contentHtml += `<li style="margin-bottom: 6px;">${escapeHtml(inst)}</li>`;
-        } else if (inst && inst.url) {
-          const safeUrl = escapeHtml(inst.url.startsWith('http') ? inst.url : `https://${inst.url}`);
-          contentHtml += `
-            <li style="margin-bottom: 6px;">
-              <a href="${safeUrl}" target="_blank" rel="noopener noreferrer" style="color:var(--amber); text-decoration: underline; text-underline-offset: 3px; position: relative; z-index: 10;">
-                ${escapeHtml(inst.name)}
-              </a>
-            </li>`;
-        }
-      });
-      contentHtml += '</ul></div>';
-    }
-    details.push({ icon: '🎓', title: 'Education', content: contentHtml, rawHTML: true });
-  }
-  if (doc.certification) {
-    details.push({ icon: '📋', title: 'Certifications', content: doc.certification.summary });
-  }
-  if (doc.experience) {
-    details.push({ icon: '🏢', title: 'Experience', content: doc.experience.summary });
-  }
-
-  details.forEach(d => {
-    const card = document.createElement('div');
-    card.className = `detail-card ${d.isGoverning ? 'governing-body-card' : ''}`;
-    const contentBody = d.rawHTML ? d.content : escapeHtml(d.content || '');
-    card.innerHTML = `
-      <div class="detail-icon">${d.icon}</div>
-      <h4>${escapeHtml(d.title)}</h4>
-      <div class="detail-body">${contentBody}</div>
-    `;
-    grid.appendChild(card);
-  });
-
-  // ── Key Links ─────────
-  if (roadmap.key_links?.length) {
-    const linksSection = document.getElementById('key-links-section');
-    const linksList = document.getElementById('key-links-list');
-    linksList.innerHTML = '';
-    roadmap.key_links.forEach(link => {
-      const a = document.createElement('a');
-      a.className = 'key-link';
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-      
-      const urlMatch = String(link).match(/(https?:\/\/[^\s]+)/);
-      if (urlMatch) {
-        a.href = urlMatch[1];
-        a.textContent = String(link).replace(urlMatch[1], '').replace(/^[:-]\s*/, '').trim() || urlMatch[1];
-      } else if (String(link).startsWith('www.')) {
-        a.href = `https://${link}`;
-        a.textContent = link;
-      } else {
-        a.href = `https://www.google.com/search?q=${encodeURIComponent('Ontario ' + link)}`;
-        a.textContent = link + ' 🔍'; // Add search icon so users know what it'll do
-      }
-      linksList.appendChild(a);
-    });
-    linksSection.classList.remove('hidden');
-  }
-
-  // ── Notes ─────────────
-  if (roadmap.important_notes?.length) {
-    const notesSection = document.getElementById('notes-section');
-    const notesList = document.getElementById('notes-list');
-    notesList.innerHTML = '';
-    roadmap.important_notes.forEach(note => {
-      const li = document.createElement('li');
-      li.textContent = note;
-      notesList.appendChild(li);
-    });
-    notesSection.classList.remove('hidden');
-  }
-
-  // ── Show section ──────
-  document.getElementById('loading-section').classList.add('hidden');
-  document.getElementById('roadmap-section').classList.remove('hidden');
-  document.getElementById('roadmap-section').classList.add('section-fade');
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+function downloadPDF() {
+  const element = document.getElementById('final-roadmap-content');
+  html2pdf().from(element).save('roadmap.pdf');
 }
 
 // ── Error ─────────────────────────────────────────────────────────────────────
