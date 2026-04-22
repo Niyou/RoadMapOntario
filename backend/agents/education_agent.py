@@ -16,7 +16,7 @@ def get_client() -> AsyncOpenAI:
     return _client
 
 SYSTEM_PROMPT = """You are an Ontario education expert specializing in post-secondary pathways.
-You MUST base your answers ONLY on the provided Official Context. If the context does not contain the answer, use null for that field. Do not rely on outside knowledge.
+You MUST base your answers ONLY on the provided Official Context. If the context does not contain the answer, use null for list fields, false for boolean fields, and "Information unavailable" for string fields. Do not rely on outside knowledge.
 
 Given a profession and whether it is regulated in Ontario, provide:
 1. The required degree or educational credential
